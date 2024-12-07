@@ -1,0 +1,152 @@
+{% extends 'baseadmin.html' %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px; text-align: center;">Manage Classes</h2>
+
+{% if messages %}
+  <div style="margin: 20px;">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" id="alert-message-{{ forloop.counter }}">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <div class="progress-bar" id="progress-bar-{{ forloop.counter }}" style="height: 4px; width: 100%;"></div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Add/Edit Class Form -->
+<form method="post" action="{% url 'classes' %}" style="margin-bottom: 20px; text-align: center;">
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="edit_id">  <!-- Hidden field for editing -->
+
+    <!-- Division Dropdown -->
+    <div style="display: inline-block; margin-bottom: 10px;">
+        <label for="division" style="margin-right: 10px;">Division:</label>
+        <select id="division" name="division" required style="padding: 5px; font-size: 16px; width: auto; min-width: 220px;">
+            <option value="">Select a division</option>
+            {% for division in divisions %}
+                <option value="{{ division.id }}">{{ division }}, {{ division.ay }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Grade Dropdown -->
+    <div style="display: inline-block; margin-left: 20px; margin-bottom: 10px;">
+        <label for="grade" style="margin-right: 10px;">Grade:</label>
+        <select id="grade" name="grade" required style="padding: 5px; font-size: 16px; width: auto; min-width: 180px;">
+            <option value="">Select a grade</option>
+            {% for grade in grades %}
+                <option value="{{ grade.0 }}">{{ grade.1 }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Teacher Email and Submit Button -->
+    <div style="display: inline-block; margin-left: 20px; margin-bottom: 20px;">
+        <label for="form_teacher" style="margin-right: 10px;">Teacher Email:</label>
+        <input type="email" id="form_teacher" name="form_teacher" required style="padding: 5px; font-size: 16px; width: auto; min-width: 200px;">
+    </div>
+    <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Add/Update Class</button>
+</form>
+
+
+<!-- Table of Classes with Edit/Delete Buttons -->
+<table class="table table-striped table-hover table-bordered text-center" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead>
+        <tr>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Division</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Grade</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Teacher/ Professor Email</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for class in classes_list %}
+        <tr>
+            <td style="padding: 10px;">{{ class.div }}, {{ class.div.ay }}</td>
+            <td style="padding: 10px;">{{ class.get_grade_display }}</td>
+            <td style="padding: 10px;">{{ class.form_teacher }}</td>
+            <td style="padding: 10px;">
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_id" value="{{ class.id }}">
+                    <button type="submit" class="btn btn-danger" style="margin-left: 10px;" onclick="return confirm('Are you sure you want to delete this class?');">Delete</button>
+                </form>
+
+                <!-- Edit Button -->
+                <button type="button" class="btn btn-warning" style="margin-left: 10px;" onclick="editClass('{{ class.id }}', '{{ class.div.id }}', '{{ class.grade }}', '{{ class.form_teacher }}')">Edit</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<footer>
+    <p>ADMIN CONTACT: +91 8484848484</p>
+    <p>ADMIN EMAIL: admin@ldce.com</p>
+    <p>&copy; All Rights Reserved</p>
+</footer>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Function to populate the form with the selected class's data for editing
+    function editClass(classId, divisionId, gradeValue, teacherEmail) {
+        document.getElementById('edit_id').value = classId;  // Set the class ID for editing
+        document.getElementById('division').value = divisionId;  // Set division
+        document.getElementById('grade').value = gradeValue;  // Set grade
+        document.getElementById('form_teacher').value = teacherEmail;  // Set teacher email
+    }
+
+    // Progress bar and alert timer
+    function startAlertTimer(alertId, progressId, duration, color) {
+        const alertMessage = document.getElementById(alertId);
+        const progressBar = document.getElementById(progressId);
+        progressBar.style.backgroundColor = color;
+
+        let width = 100;
+        const interval = setInterval(() => {
+            width -= 0.1;
+            progressBar.style.width = width + "%";
+            if (width <= 0) {
+                clearInterval(interval);
+                alertMessage.style.transition = "opacity 1s ease";
+                alertMessage.style.opacity = 0;
+                setTimeout(() => alertMessage.remove(), 1000);
+            }
+        }, (duration * 10));
+    }
+
+    // Start timers for each message
+    {% for message in messages %}
+        let color;
+
+        // Use Django template logic to determine the color based on message type
+        {% if message.tags == "success" %}
+            color = "green"; // Success color
+        {% elif message.tags == "error" %}
+            color = "red"; // Error color
+        {% elif message.tags == "info" %}
+            color = "#0c5460"; // Info color
+        {% elif message.tags == "warning" %}
+            color = "orange"; // Warning color
+        {% else %}
+            color = ""; // Default color if no tag matches
+        {% endif %}
+        
+        startAlertTimer("alert-message-{{ forloop.counter }}", "progress-bar-{{ forloop.counter }}", 15, color); // 15 seconds timer
+    {% endfor %}
+</script>
+
+<style>
+    .progress-bar {
+      transition: width 0.1s linear;
+    }
+</style>
+
+{% endblock %}

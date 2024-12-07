@@ -1,0 +1,161 @@
+{% extends 'baseadmin.html' %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px; text-align: center;">Manage Students</h2>
+
+{% if messages %}
+  <div style="margin: 20px;">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" id="alert-message-{{ forloop.counter }}">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <div class="progress-bar" id="progress-bar-{{ forloop.counter }}" style="height: 4px; width: 100%;"></div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Add/Edit Student Form -->
+<form method="post" action="{% url 'students' %}" enctype="multipart/form-data" style="margin-bottom: 20px; text-align: center;">
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="edit_id">  <!-- Hidden field to handle edit -->
+
+    <div class="container">
+
+        <!-- First Row: Name and Grade -->
+        <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+            <div style="margin-right: 20px;">
+                <label for="name" style="margin-right: 10px;">Name:</label>
+                <input type="text" id="name" name="name" required style="padding: 5px; font-size: 16px; width: auto;">
+            </div>
+            <div>
+                <label for="grade" style="margin-right: 10px;">Grade:</label>
+                <select id="grade" name="grade" required style="padding: 5px; font-size: 16px;width: auto; min-width: 120px;">
+                    <option value="">Select a grade</option>
+                    {% for grade in grades %}
+                    <option value="{{ grade.id }}">{{ grade }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <!-- Second Row: Photo 1, Photo 2, Photo 3 -->
+        <div style="display: flex; justify-content: center; margin-bottom: 10px;">
+            <div style="margin-right: 20px;">
+                <label for="photo1" style="margin-right: 10px;">Photo 1:</label>
+                <input type="file" id="photo1" name="photo1" accept="image/*" required>
+            </div>
+            <div style="margin-right: 20px;">
+                <label for="photo2" style="margin-right: 10px;">Photo 2 (optional):</label>
+                <input type="file" id="photo2" name="photo2" accept="image/*">
+            </div>
+            <div>
+                <label for="photo3" style="margin-right: 10px;">Photo 3 (optional):</label>
+                <input type="file" id="photo3" name="photo3" accept="image/*">
+            </div>
+        </div>
+        
+        <!-- Submit Button -->
+        <div style="margin-top: 10px;">
+            <button type="submit" class="btn btn-primary" style="padding: 6px 12px;">Add/Update Student</button>
+        </div>
+    </div>
+</form>
+
+
+
+<!-- Table of Students with Edit/Delete Buttons -->
+<table class="table table-striped table-hover table-bordered text-center" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead>
+        <tr>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Name</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Grade</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td style="padding: 10px;">{{ student.name }}</td>
+            <td style="padding: 10px;">{{ student.grade }}</td>
+            <td style="padding: 10px;">
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_id" value="{{ student.id }}">
+                    <button type="submit" class="btn btn-danger" style="margin-left: 10px;" onclick="return confirm('Are you sure you want to delete the student {{ student.name }}?');">Delete</button>
+                </form>
+
+                <button type="button" class="btn btn-warning" style="margin-left: 10px;" onclick="editStudent('{{ student.id }}', '{{ student.name }}', '{{ student.grade.id }}')">Edit</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<footer>
+    <p>ADMIN CONTACT: +91 8484848484</p>
+    <p>ADMIN EMAIL: admin@ldce.com</p>
+    <p>&copy; All Rights Reserved</p>
+</footer>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    function editStudent(studentId, name, gradeId) {
+        document.getElementById('edit_id').value = studentId;  // Set the student ID to edit
+        document.getElementById('name').value = name;  // Set the name
+        document.getElementById('grade').value = gradeId;  // Set the grade
+    }
+
+    function startAlertTimer(alertId, progressId, duration, color) {
+        const alertMessage = document.getElementById(alertId);
+        const progressBar = document.getElementById(progressId);
+
+        progressBar.style.backgroundColor = color;
+        let width = 100;
+        const intervalTime = 10;
+        const totalTime = duration * 1000;
+        const step = (intervalTime / totalTime) * 100;
+
+        const interval = setInterval(function() {
+            width -= step;
+            if (width <= 0) {
+                width = 0;
+                clearInterval(interval);
+                alertMessage.style.transition = "opacity 1s ease";
+                alertMessage.style.opacity = 0;
+                setTimeout(() => alertMessage.remove(), 1000);
+            }
+            progressBar.style.width = width + "%";
+        }, intervalTime);
+    }
+
+    {% for message in messages %}
+        let color;
+        {% if message.tags == "success" %}
+            color = "green";
+        {% elif message.tags == "error" %}
+            color = "red";
+        {% elif message.tags == "info" %}
+            color = "#0c5460";
+        {% elif message.tags == "warning" %}
+            color = "orange";
+        {% else %}
+            color = "";
+        {% endif %}
+        
+        startAlertTimer("alert-message-{{ forloop.counter }}", "progress-bar-{{ forloop.counter }}", 15, color);
+    {% endfor %}
+</script>
+
+<style>
+    .progress-bar {
+      transition: width 0.1s linear;
+    }
+</style>
+
+{% endblock %}

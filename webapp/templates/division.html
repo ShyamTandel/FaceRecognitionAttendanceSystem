@@ -1,0 +1,149 @@
+{% extends 'baseadmin.html' %}
+
+{% block content %}
+<h2 style="margin-bottom: 20px; text-align: center;">Manage Divisions</h2>
+
+{% if messages %}
+  <div style="margin: 20px;">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" id="alert-message-{{ forloop.counter }}">
+        {{ message }}
+        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+        <!-- Dynamic progress bar -->
+        <div class="progress-bar" id="progress-bar-{{ forloop.counter }}" style="height: 4px; width: 100%;"></div>
+      </div>
+    {% endfor %}
+  </div>
+{% endif %}
+
+<!-- Add/Edit Division Form -->
+<form method="post" action="{% url 'division' %}" style="margin-bottom: 20px; text-align: center;">
+    {% csrf_token %}
+    <input type="hidden" name="edit_id" id="edit_id">  <!-- Hidden field to handle edit -->
+
+    <label for="academic_year" style="margin-right: 10px;">Academic Year:</label>
+    <select id="academic_year" name="academic_year" required style="padding: 5px; font-size: 16px; width: auto; min-width: 220px;">
+        <option value="">Select an academic year</option>
+        {% for year in academic_years %}
+            <option value="{{ year.id }}">{{ year }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="division" style="margin-left: 20px; margin-right: 10px;">Division:</label>
+    <select id="division" name="division" required style="padding: 5px; font-size: 16px; width: auto; min-width: 180px;">
+        <option value="">Select a division</option>
+        {% for division_key, division_value in division_choices %}
+            <option value="{{ division_key }}">{{ division_value }}</option>
+        {% endfor %}
+    </select>
+    
+        
+
+    <button type="submit" class="btn btn-primary" style="margin-left: 10px;">Add/Update Division</button>
+</form>
+
+<!-- Table of Divisions with Edit/Delete Buttons -->
+<table class="table table-striped table-hover table-bordered text-center" style="width: 100%; border-collapse: collapse; text-align: left;">
+    <thead>
+        <tr>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Academic Year</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Division</th>
+            <th style="padding: 10px; background-color: #63C3FF; color: #182F3D;">Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for division in divisions %}
+        <tr>
+            <td style="padding: 10px;">{{ division.ay }}</td>
+            <td style="padding: 10px;">{{ division.get_division_display }}</td>
+            <td style="padding: 10px;">
+                <form method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="delete_id" value="{{ division.id }}">
+                    <button type="submit" class="btn btn-danger" style="margin-left: 10px;" onclick="return confirm('Are you sure you want to delete the division {{ division }}{{ ay_instance }}?');">Delete</button>
+                </form>
+
+                <!-- Edit Button -->
+                <button type="button" class="btn btn-warning" style="margin-left: 10px;" onclick="editDivision('{{ division.id }}', '{{ division.ay.id }}', '{{ division.division }}')">Edit</button>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+<footer>
+    <p>ADMIN CONTACT: +91 8484848484</p>
+    <p>ADMIN EMAIL: admin@ldce.com</p>
+    <p>&copy; All Rights Reserved</p>
+</footer>
+
+<link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Function to populate the form with the selected division's data for editing
+    function editDivision(divisionId, academicYearId, divisionValue) {
+        document.getElementById('edit_id').value = divisionId;  // Set the division ID to edit
+        document.getElementById('academic_year').value = academicYearId;  // Set academic year
+        document.getElementById('division').value = divisionValue;  // Set division value
+    }
+
+    // Function to animate the progress bar and remove the alert message
+    function startAlertTimer(alertId, progressId, duration, color) {
+        const alertMessage = document.getElementById(alertId);
+        const progressBar = document.getElementById(progressId);
+
+        // Set initial color of the progress bar
+        progressBar.style.backgroundColor = color;
+
+        let width = 100; // Start the progress bar at 100%
+        let intervalTime = 10; // Update every 10 milliseconds
+        let totalTime = duration * 1000; // Convert duration from seconds to milliseconds
+        let step = (intervalTime / totalTime) * 100; // Calculate step percentage for each interval
+
+        const interval = setInterval(function() {
+            width -= step;
+            if (width <= 0) {
+                width = 0;
+                clearInterval(interval);
+                // Fade out the alert message
+                alertMessage.style.transition = "opacity 1s ease";
+                alertMessage.style.opacity = 0;
+                setTimeout(() => {
+                    alertMessage.remove(); // Remove after fading out
+                }, 1000); // Wait for the fade out to complete
+            }
+            progressBar.style.width = width + "%"; // Update the width of the progress bar
+        }, intervalTime);
+    }
+
+    // Start timers for each message
+    {% for message in messages %}
+        let color;
+
+        // Use Django template logic to determine the color based on message type
+        {% if message.tags == "success" %}
+            color = "green"; // Success color
+        {% elif message.tags == "error" %}
+            color = "red"; // Error color
+        {% elif message.tags == "info" %}
+            color = "#0c5460"; // Info color
+        {% elif message.tags == "warning" %}
+            color = "orange"; // Warning color
+        {% else %}
+            color = ""; // Default color
+        {% endif %}
+        
+        startAlertTimer("alert-message-{{ forloop.counter }}", "progress-bar-{{ forloop.counter }}", 15, color); // 5 seconds timer
+    {% endfor %}
+</script>
+
+<style>
+    .progress-bar {
+      transition: width 0.1s linear; /* Smooth shrinking of the progress bar */
+    }
+</style>
+
+{% endblock %}
